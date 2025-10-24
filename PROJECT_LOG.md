@@ -7,6 +7,10 @@
 
 ## ✅ Stan obecny: Zaimplementowane Funkcje
 
+- **Konfiguracja Projektu:**
+    - [x] Skonfigurowany projekt React (`package.json`).
+    - [x] Zainstalowane wszystkie niezbędne zależności.
+    - [x] Możliwość uruchomienia serwera deweloperskiego (`npm start`).
 - **Core Gameplay:**
     - [x] Poruszanie się postaci po mapie w 4 kierunkach.
     - [x] Płynne animacje ruchu postaci.
@@ -41,6 +45,14 @@
     - [x] Czytelna struktura plików i folderów.
 
 ## 📝 Dziennik Zmian (Changelog)
+
+**2024-07-27: Inicjalizacja projektu i naprawa środowiska deweloperskiego**
+- **Opis:** Zdiagnozowano i rozwiązano problem uniemożliwiający uruchomienie projektu. Brakujący plik `package.json` został utworzony ręcznie, a następnie zainstalowano wszystkie niezbędne zależności, przekształcając projekt w pełnoprawną aplikację React.
+- **Zmiany:**
+    - Dodano plik `package.json` z konfiguracją projektu i listą zależności.
+    - Dodano plik `package-lock.json` w wyniku instalacji pakietów.
+    - Zainstalowano wszystkie biblioteki (m.in. React, ReactDOM) w folderze `node_modules`.
+    - Pomyślnie uruchomiono serwer deweloperski i przetestowano działanie gry.
 
 **2024-07-26: Refaktoryzacja kodu i nowa struktura projektu**
 - **Opis:** Przeprowadzono gruntowną refaktoryzację kodu w celu zwiększenia jego czytelności, skalowalności i łatwości w utrzymaniu. Wprowadzono nową strukturę plików, oddzielając logikę gry od komponentów interfejsu użytkownika.
