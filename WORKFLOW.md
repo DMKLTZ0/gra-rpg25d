@@ -4,39 +4,41 @@ Ten dokument opisuje cykl pracy i zasady, których będziemy przestrzegać podcz
 
 #### 1. Schemat Rozpoczęcia Sesji Pracy
 
-Każdą nową sesję (w nowej konwersacji) rozpoczynamy od fazy **"Synchronizacji Stanu"**:
+Każdą nową sesję rozpoczynamy od fazy **"Synchronizacji Stanu"**:
 
-1.  **Moje Powitanie i Analiza:** Na początku każdej sesji automatycznie:
-    *   Przeczytam plik `PROJECT_LOG.md`, aby zidentyfikować, na czym skończyliśmy i jaki jest następny zaplanowany krok w "Mapie Drogowej".
-    *   Uruchomię komendę `git status`, aby upewnić się, że nie ma żadnych niezatwierdzonych zmian z poprzedniej sesji.
-2.  **Raport Otwarcia:** Przedstawię Ci krótkie podsumowanie: "Dzień dobry! Zgodnie z `PROJECT_LOG.md`, ostatnio zakończyliśmy [opis zadania]. Następnym celem jest [cel z Mapy Drogowej]. Repozytorium jest czyste. Czy jesteś gotów, aby kontynuować?"
-3.  **Twoja Decyzja:** Po Twoim potwierdzeniu przystępujemy do pracy.
+1.  **Analiza Automatyczna:** Na początku każdej sesji automatycznie:
+    *   Przeczytam plik `PROJECT_LOG.md`, aby zidentyfikować następny zaplanowany krok.
+    *   Sprawdzę status Git (`git status`), aby upewnić się, że gałąź `main` jest czysta.
+2.  **Raport Otwarcia:** Przedstawię Ci krótkie podsumowanie z prośbą o zdefiniowanie celu na bieżącą sesję.
+3.  **Tworzenie Gałęzi Funkcyjnej (Feature Branch):** Po ustaleniu celu (np. "Implementacja systemu questów"), stworzę nową gałąź dedykowaną tej funkcji, np. `feature/quest-system`, i przełączę się na nią. Cała praca w danej sesji będzie odbywać się na tej gałęzi.
 
 #### 2. Schemat Realizacji i Rozbudowy Projektu
 
-Praca nad nowymi funkcjami lub zmianami będzie przebiegać w pętli **"Plan -> Realizacja -> Test"**:
+Praca nad funkcjami przebiega w pętli **"Plan -> Realizacja -> Test -> Poprawka"**:
 
-1.  **Definicja Celu:** Mówisz mi, co chcesz osiągnąć (np. "Zróbmy system questów" lub "Poprawmy wygląd ekwipunku").
-2.  **Propozycja Planu:** Ja dzielę zadanie na mniejsze, logiczne kroki (np. "1. Utworzę plik `Quests.js`. 2. Dodam logikę do `useGameLogic.js`. 3. Wyświetlę aktywne questy w HUD."). Przedstawię Ci ten plan.
-3.  **Realizacja Krok po Kroku:** Po Twojej akceptacji realizuję plan krok po kroku, informując Cię o postępach i używając narzędzi do modyfikacji kodu.
-4.  **Cykliczne Testowanie:** Po zaimplementowaniu istotnego fragmentu (np. nowego komponentu) proponuję szybki test: "Dodałem podstawy systemu questów. Czy chcesz, abym uruchomił serwer (`npm start`), żebyśmy mogli zobaczyć, jak to wygląda?".
+1.  **Definicja Celu i Plan Działania:** Na podstawie Twoich wytycznych, dzielę zadanie na mniejsze, logiczne kroki i przedstawiam Ci plan do akceptacji.
+2.  **Realizacja Krok po Kroku:** Realizuję zaakceptowany plan, modyfikując kod i informując o postępach.
+3.  **Cykliczne Testowanie:** Regularnie proponuję uruchomienie projektu, aby na bieżąco weryfikować poprawność działania wprowadzonych zmian.
+4.  **Protokół Postępowania w Razie Błędów:** W przypadku napotkania błędu:
+    *   **Identyfikacja:** Zatrzymuję pracę, cytuję komunikat błędu i analizuję ostatnie zmiany.
+    *   **Diagnoza:** Przedstawiam hipotezę dotyczącą przyczyny problemu.
+    *   **Plan Naprawczy:** Proponuję konkretne kroki w celu rozwiązania błędu.
+    *   **Weryfikacja:** Po wdrożeniu poprawki, ponownie przeprowadzamy test.
 
-#### 3. Schemat Planowania Dalszej Pracy
+#### 3. Standardy i Jakość Kodu
 
-Planowanie jest integralną częścią procesu, realizowaną poprzez **ciągłą aktualizację "Mapy Drogowej"**:
-
-1.  **Dyskusja o Priorytetach:** Po zakończeniu większego zadania lub na Twoją prośbę, możemy omówić, co robić dalej.
-2.  **Aktualizacja Mapy Drogowej:** Na podstawie naszej dyskusji, zaktualizuję sekcję `🚀 Mapa Drogowa (Roadmap)` w pliku `PROJECT_LOG.md`. Przesunę ukończone zadania i ustalę nowy "Następny krok".
+1.  **Automatyczne Formatowanie:** Projekt jest wyposażony w narzędzie `Prettier`. Przed każdym zatwierdzeniem zmian (commit), uruchomię skrypt `npm run format`, który automatycznie sformatuje kod, zapewniając jego spójność i czytelność.
 
 #### 4. Schemat Zakończenia Sesji Pracy
 
-Każdą sesję kończymy procedurą **"Czystego Zamknięcia"**, aby przygotować projekt na przyszłość:
+Każdą sesję kończymy procedurą **"Integracji i Czystego Zamknięcia"**:
 
-1.  **Twoja Decyzja o Zakończeniu:** Informujesz mnie: "Na dziś wystarczy" lub "Zakończmy na razie pracę".
-2.  **Finalny Test:** Zaproponuję ostatni test, aby upewnić się, że projekt jest w stabilnym, działającym stanie (`npm start` lub `npm run build`).
-3.  **Aktualizacja Dziennika:** Po pomyślnym teście zaktualizuję `PROJECT_LOG.md`, dodając nowy wpis do `📝 Dziennik Zmian (Changelog)` z podsumowaniem pracy wykonanej podczas sesji.
-4.  **Zatwierdzenie i Synchronizacja Git:** Wykonam sekwencję komend:
-    *   `git add .`
-    *   `git commit -m "feat/fix/docs: Krótkie podsumowanie zmian z sesji"`
-    *   `git push`
-5.  **Potwierdzenie Zakończenia:** Na koniec poinformuję: "Procedura zamknięcia zakończona. Projekt został zaktualizowany, a wszystkie zmiany wysłane do repozytorium. Jesteśmy gotowi na następną sesję. Do zobaczenia!".
+1.  **Twoja Decyzja o Zakończeniu:** Informujesz mnie, że na dziś kończymy.
+2.  **Finalne Formatowanie i Test:** Uruchamiam `npm run format`, a następnie przeprowadzam finalny test, aby upewnić się, że kod na gałęzi funkcyjnej jest stabilny.
+3.  **Integracja z Gałęzią Główną (Merge):**
+    *   Przełączam się na gałąź `main`.
+    *   Łączę zmiany z naszej gałęzi funkcyjnej (`git merge feature/nazwa-funkcji`).
+    *   Usuwam gałąź funkcyjną, która nie jest już potrzebna (`git branch -d feature/nazwa-funkcji`).
+4.  **Aktualizacja Dziennika:** Aktualizuję `PROJECT_LOG.md`, dodając wpis o zrealizowanych zadaniach do `Changelog` i ewentualnie aktualizując `Roadmap`.
+5.  **Zatwierdzenie i Synchronizacja Git:** Wysyłam wszystkie zmiany z lokalnej gałęzi `main` do zdalnego repozytorium na GitHub (`git push`).
+6.  **Potwierdzenie Zakończenia:** Informuję o pomyślnym zakończeniu procedury, potwierdzając, że gałąź `main` jest stabilna, aktualna i gotowa na następną sesję.
