@@ -1,0 +1,1303 @@
+﻿import React, { useState, useEffect, useRef } from 'react';
+import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Heart, Zap, Sword, Package, X, ShoppingBag, Coins, Target } from 'lucide-react';
+
+const MobileRPG = () => {
+  const [currentMap, setCurrentMap] = useState('map_base1');
+  const [playerPos, setPlayerPos] = useState({ x: 100, y: 50 });
+  const [playerStats, setPlayerStats] = useState({
+    hp: 100,
+    maxHp: 100,
+    level: 1,
+    xp: 0,
+    maxXp: 100,
+    speed: 500,
+    gold: 50,
+    attackRange: 1,
+    damage: 25
+  });
+  const [equipment, setEquipment] = useState({
+    weapon: null,
+    helmet: null,
+    armor: null,
+    pants: null,
+    boots: null,
+    shield: null
+  });
+  const [inventory, setInventory] = useState([
+    { id: 'potion1', name: 'Mikstura zdrowia', type: 'potion', healing: 50, icon: '🧪' }
+  ]);
+  const [projectiles, setProjectiles] = useState([]);
+  const [showInventory, setShowInventory] = useState(false);
+  const [cameraOffset, setCameraOffset] = useState({ x: 0, y: 0 });
+  const [direction, setDirection] = useState('down');
+  const [isMoving, setIsMoving] = useState(false);
+  const [targetPos, setTargetPos] = useState(null);
+  const [animationProgress, setAnimationProgress] = useState(0);
+  const [showMessage, setShowMessage] = useState(null);
+  const [lastRespawn, setLastRespawn] = useState(Date.now());
+  
+  const [mapData, setMapData] = useState({
+    map_base1: {
+      width: 200,
+      height: 100,
+      maxEnemies: 15,
+      enemies: [
+        { id: 1, x: 105, y: 52, hp: 50, maxHp: 50, type: 'slime', dir: 'down', gold: 10, xp: 30 },
+        { id: 2, x: 95, y: 48, hp: 50, maxHp: 50, type: 'slime', dir: 'left', gold: 10, xp: 30 },
+        { id: 3, x: 110, y: 55, hp: 80, maxHp: 80, type: 'goblin', dir: 'up', gold: 25, xp: 50 },
+        { id: 4, x: 92, y: 55, hp: 80, maxHp: 80, type: 'goblin', dir: 'down', gold: 25, xp: 50 },
+        { id: 5, x: 107, y: 45, hp: 50, maxHp: 50, type: 'slime', dir: 'right', gold: 10, xp: 30 }
+      ],
+      obstacles: [
+        { x: 102, y: 50, type: 'rock' }, { x: 103, y: 50, type: 'rock' }, { x: 104, y: 50, type: 'rock' },
+        { x: 98, y: 52, type: 'rock' }, { x: 99, y: 52, type: 'rock' },
+        { x: 106, y: 48, type: 'rock' }, { x: 107, y: 48, type: 'rock' }, { x: 108, y: 48, type: 'rock' },
+        { x: 96, y: 54, type: 'rock' }, { x: 97, y: 55, type: 'rock' },
+        { x: 98, y: 48, type: 'water' }, { x: 99, y: 48, type: 'water' }, { x: 100, y: 48, type: 'water' },
+        { x: 98, y: 49, type: 'water' }, { x: 99, y: 49, type: 'water' }, { x: 100, y: 49, type: 'water' }
+      ],
+      items: [
+        { id: 'i1', x: 108, y: 52, type: 'potion', name: 'Mikstura zdrowia', healing: 50, icon: '🧪' },
+        { id: 'i2', x: 94, y: 51, type: 'gold', amount: 30, icon: '💰' },
+        { id: 'i3', x: 112, y: 49, type: 'weapon', name: 'Miecz Żelazny', itemType: 'sword', damage: 15, range: 1, icon: '⚔️', rarity: 'common' },
+        { id: 'i4', x: 90, y: 53, type: 'weapon', name: 'Różdżka Ognia', itemType: 'wand', damage: 12, range: 4, icon: '🪄', rarity: 'rare' },
+        { id: 'i5', x: 113, y: 47, type: 'armor', name: 'Skórzana Zbroja', itemType: 'armor', defense: 10, icon: '🛡️', slot: 'armor', rarity: 'common' }
+      ],
+      portals: [
+        { x: 115, y: 50, targetMap: 'map_cave1', targetX: 5, targetY: 10, label: 'Jaskinia' }
+      ],
+      spawnPoints: [
+        { x: 105, y: 52 }, { x: 95, y: 48 }, { x: 110, y: 55 }, { x: 92, y: 55 }, { x: 107, y: 45 },
+        { x: 88, y: 50 }, { x: 112, y: 52 }, { x: 97, y: 46 }, { x: 103, y: 57 }, { x: 109, y: 48 }
+      ]
+    },
+    map_cave1: {
+      width: 150,
+      height: 80,
+      maxEnemies: 10,
+      enemies: [
+        { id: 10, x: 20, y: 15, hp: 120, maxHp: 120, type: 'skeleton', dir: 'down', gold: 40, xp: 70 },
+        { id: 11, x: 25, y: 20, hp: 120, maxHp: 120, type: 'skeleton', dir: 'left', gold: 40, xp: 70 },
+        { id: 12, x: 30, y: 18, hp: 150, maxHp: 150, type: 'orc', dir: 'up', gold: 60, xp: 100 }
+      ],
+      obstacles: [
+        { x: 15, y: 12, type: 'rock' }, { x: 16, y: 12, type: 'rock' }, { x: 17, y: 12, type: 'rock' },
+        { x: 15, y: 18, type: 'rock' }, { x: 16, y: 18, type: 'rock' }
+      ],
+      items: [
+        { id: 'i10', x: 30, y: 15, type: 'gold', amount: 100, icon: '💰' },
+        { id: 'i11', x: 22, y: 17, type: 'weapon', name: 'Łuk Myśliwski', itemType: 'bow', damage: 18, range: 5, icon: '🏹', rarity: 'rare' },
+        { id: 'i12', x: 28, y: 13, type: 'armor', name: 'Hełm Stalowy', itemType: 'helmet', defense: 8, icon: '⛑️', slot: 'helmet', rarity: 'uncommon' }
+      ],
+      portals: [
+        { x: 5, y: 10, targetMap: 'map_base1', targetX: 115, targetY: 50, label: 'Wyjście' }
+      ],
+      spawnPoints: [
+        { x: 20, y: 15 }, { x: 25, y: 20 }, { x: 30, y: 18 }, { x: 18, y: 22 }, { x: 27, y: 14 }
+      ]
+    }
+  });
+  
+  const animationFrameRef = useRef(null);
+  const lastMoveTimeRef = useRef(0);
+  const buttonPressedRef = useRef(null);
+  const lastEnemyMoveRef = useRef(Date.now());
+  const nextEnemyIdRef = useRef(100);
+
+  const TILE_SIZE = 40;
+  const VISIBLE_TILES_X = 10;
+  const VISIBLE_TILES_Y = 20;
+  const ENEMY_MOVE_INTERVAL = 2000;
+  const RESPAWN_INTERVAL = 10000;
+  const PROJECTILE_SPEED = 300;
+
+  const currentMapData = mapData[currentMap];
+  const MAP_WIDTH = currentMapData.width;
+  const MAP_HEIGHT = currentMapData.height;
+
+  const getWeaponType = () => {
+    if (!equipment.weapon) return 'melee';
+    const type = equipment.weapon.itemType;
+    if (type === 'bow') return 'archer';
+    if (type === 'wand') return 'mage';
+    return 'melee';
+  };
+
+  const getTotalDefense = () => {
+    let defense = 0;
+    Object.values(equipment).forEach(item => {
+      if (item && item.defense) defense += item.defense;
+    });
+    return defense;
+  };
+
+  const isObstacle = (x, y) => {
+    return currentMapData.obstacles.some(obs => obs.x === x && obs.y === y);
+  };
+
+  const isEnemyAt = (x, y) => {
+    return currentMapData.enemies.some(enemy => enemy.x === x && enemy.y === y);
+  };
+
+  const getEnemyAt = (x, y) => {
+    return currentMapData.enemies.find(enemy => enemy.x === x && enemy.y === y);
+  };
+
+  const getItemAt = (x, y) => {
+    return currentMapData.items.find(item => item.x === x && item.y === y);
+  };
+
+  const getPortalAt = (x, y) => {
+    return currentMapData.portals.find(portal => portal.x === x && portal.y === y);
+  };
+
+  const canMove = (x, y) => {
+    return x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT && !isObstacle(x, y);
+  };
+
+  const spawnEnemy = () => {
+    const now = Date.now();
+    if (now - lastRespawn < RESPAWN_INTERVAL) return;
+    if (currentMapData.enemies.length >= currentMapData.maxEnemies) return;
+
+    const availableSpawns = currentMapData.spawnPoints.filter(spawn => {
+      const dx = Math.abs(spawn.x - playerPos.x);
+      const dy = Math.abs(spawn.y - playerPos.y);
+      return dx > 15 || dy > 15;
+    });
+
+    if (availableSpawns.length === 0) return;
+
+    const spawnPoint = availableSpawns[Math.floor(Math.random() * availableSpawns.length)];
+    
+    const enemyTypes = currentMap === 'map_base1' 
+      ? [
+          { type: 'slime', hp: 50, gold: 10, xp: 30 },
+          { type: 'goblin', hp: 80, gold: 25, xp: 50 }
+        ]
+      : [
+          { type: 'skeleton', hp: 120, gold: 40, xp: 70 },
+          { type: 'orc', hp: 150, gold: 60, xp: 100 }
+        ];
+
+    const enemyTemplate = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+    
+    const newEnemy = {
+      id: nextEnemyIdRef.current++,
+      x: spawnPoint.x,
+      y: spawnPoint.y,
+      hp: enemyTemplate.hp,
+      maxHp: enemyTemplate.hp,
+      type: enemyTemplate.type,
+      dir: ['up', 'down', 'left', 'right'][Math.floor(Math.random() * 4)],
+      gold: enemyTemplate.gold,
+      xp: enemyTemplate.xp
+    };
+
+    setMapData(prev => ({
+      ...prev,
+      [currentMap]: {
+        ...prev[currentMap],
+        enemies: [...prev[currentMap].enemies, newEnemy]
+      }
+    }));
+
+    setLastRespawn(now);
+  };
+
+  const pickupItem = (x, y) => {
+    const item = getItemAt(x, y);
+    if (!item) return;
+
+    if (item.type === 'gold') {
+      setPlayerStats(prev => ({ ...prev, gold: prev.gold + item.amount }));
+      displayMessage(`+${item.amount} złota!`);
+    } else if (item.type === 'potion') {
+      setInventory(prev => [...prev, { 
+        id: `potion_${Date.now()}`, 
+        name: item.name, 
+        type: 'potion', 
+        healing: item.healing, 
+        icon: item.icon 
+      }]);
+      displayMessage(`Podniesiono: ${item.name}`);
+    } else if (item.type === 'weapon') {
+      setInventory(prev => [...prev, {
+        id: `weapon_${Date.now()}`,
+        name: item.name,
+        type: 'weapon',
+        itemType: item.itemType,
+        damage: item.damage,
+        range: item.range,
+        icon: item.icon,
+        rarity: item.rarity
+      }]);
+      displayMessage(`Podniesiono: ${item.name}`);
+    } else if (item.type === 'armor') {
+      setInventory(prev => [...prev, {
+        id: `armor_${Date.now()}`,
+        name: item.name,
+        type: 'armor',
+        itemType: item.itemType,
+        defense: item.defense,
+        icon: item.icon,
+        slot: item.slot,
+        rarity: item.rarity
+      }]);
+      displayMessage(`Podniesiono: ${item.name}`);
+    }
+
+    setMapData(prev => ({
+      ...prev,
+      [currentMap]: {
+        ...prev[currentMap],
+        items: prev[currentMap].items.filter(i => i.id !== item.id)
+      }
+    }));
+  };
+
+  const usePortal = (x, y) => {
+    const portal = getPortalAt(x, y);
+    if (!portal) return;
+
+    displayMessage(`Przejście do: ${portal.label}`);
+    setCurrentMap(portal.targetMap);
+    setPlayerPos({ x: portal.targetX, y: portal.targetY });
+  };
+
+  const displayMessage = (msg) => {
+    setShowMessage(msg);
+    setTimeout(() => setShowMessage(null), 2000);
+  };
+
+  const equipItem = (itemId) => {
+    const item = inventory.find(i => i.id === itemId);
+    if (!item || (item.type !== 'weapon' && item.type !== 'armor')) return;
+
+    if (item.type === 'weapon') {
+      if (equipment.weapon) {
+        setInventory(prev => [...prev.filter(i => i.id !== itemId), equipment.weapon]);
+      } else {
+        setInventory(prev => prev.filter(i => i.id !== itemId));
+      }
+      setEquipment(prev => ({ ...prev, weapon: item }));
+      setPlayerStats(prev => ({
+        ...prev,
+        attackRange: item.range,
+        damage: 25 + item.damage
+      }));
+      displayMessage(`Założono: ${item.name}`);
+    } else if (item.type === 'armor') {
+      const slot = item.slot;
+      if (equipment[slot]) {
+        setInventory(prev => [...prev.filter(i => i.id !== itemId), equipment[slot]]);
+      } else {
+        setInventory(prev => prev.filter(i => i.id !== itemId));
+      }
+      setEquipment(prev => ({ ...prev, [slot]: item }));
+      displayMessage(`Założono: ${item.name}`);
+    }
+  };
+
+  const useItem = (itemId) => {
+    const item = inventory.find(i => i.id === itemId);
+    if (!item) return;
+
+    if (item.type === 'potion') {
+      setPlayerStats(prev => ({
+        ...prev,
+        hp: Math.min(prev.maxHp, prev.hp + item.healing)
+      }));
+      setInventory(prev => prev.filter(i => i.id !== itemId));
+      displayMessage(`Użyto: ${item.name} (+${item.healing} HP)`);
+    } else if (item.type === 'weapon' || item.type === 'armor') {
+      equipItem(itemId);
+    }
+  };
+
+  const createProjectile = (targetX, targetY) => {
+    const newProjectile = {
+      id: Date.now(),
+      startX: playerPos.x,
+      startY: playerPos.y,
+      targetX,
+      targetY,
+      currentX: playerPos.x,
+      currentY: playerPos.y,
+      startTime: Date.now(),
+      weaponType: getWeaponType()
+    };
+    setProjectiles(prev => [...prev, newProjectile]);
+  };
+
+  const performAttack = () => {
+    const weaponType = getWeaponType();
+    const range = playerStats.attackRange;
+
+    if (weaponType === 'melee') {
+      let targetX = playerPos.x;
+      let targetY = playerPos.y;
+
+      switch(direction) {
+        case 'up': targetY--; break;
+        case 'down': targetY++; break;
+        case 'left': targetX--; break;
+        case 'right': targetX++; break;
+        default: break;
+      }
+
+      const enemy = getEnemyAt(targetX, targetY);
+      if (enemy) {
+        attackEnemy(targetX, targetY);
+      }
+    } else {
+      const enemies = currentMapData.enemies;
+      let closestEnemy = null;
+      let minDistance = Infinity;
+
+      enemies.forEach(enemy => {
+        const dx = enemy.x - playerPos.x;
+        const dy = enemy.y - playerPos.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance <= range && distance < minDistance) {
+          minDistance = distance;
+          closestEnemy = enemy;
+        }
+      });
+
+      if (closestEnemy) {
+        createProjectile(closestEnemy.x, closestEnemy.y);
+      }
+    }
+  };
+
+  const attackEnemy = (x, y) => {
+    setMapData(prev => {
+      const newEnemies = prev[currentMap].enemies.map(enemy => {
+        if (enemy.x === x && enemy.y === y) {
+          const damage = playerStats.damage;
+          const newHp = enemy.hp - damage;
+          if (newHp <= 0) {
+            setPlayerStats(ps => ({
+              ...ps,
+              xp: ps.xp + enemy.xp,
+              gold: ps.gold + enemy.gold
+            }));
+            displayMessage(`+${enemy.gold} złota!`);
+            return null;
+          }
+          return { ...enemy, hp: newHp };
+        }
+        return enemy;
+      }).filter(Boolean);
+      
+      return {
+        ...prev,
+        [currentMap]: {
+          ...prev[currentMap],
+          enemies: newEnemies
+        }
+      };
+    });
+  };
+
+  useEffect(() => {
+    const updateProjectiles = () => {
+      const now = Date.now();
+      
+      setProjectiles(prev => {
+        return prev.map(proj => {
+          const elapsed = now - proj.startTime;
+          const progress = Math.min(elapsed / PROJECTILE_SPEED, 1);
+          
+          const currentX = proj.startX + (proj.targetX - proj.startX) * progress;
+          const currentY = proj.startY + (proj.targetY - proj.startY) * progress;
+          
+          if (progress >= 1) {
+            const enemy = getEnemyAt(proj.targetX, proj.targetY);
+            if (enemy) {
+              attackEnemy(proj.targetX, proj.targetY);
+            }
+            return null;
+          }
+          
+          return { ...proj, currentX, currentY };
+        }).filter(Boolean);
+      });
+    };
+
+    const interval = setInterval(updateProjectiles, 16);
+    return () => clearInterval(interval);
+  }, [currentMapData]);
+
+  const moveEnemies = () => {
+    const now = Date.now();
+    if (now - lastEnemyMoveRef.current < ENEMY_MOVE_INTERVAL) return;
+    
+    lastEnemyMoveRef.current = now;
+    
+    setMapData(prev => {
+      const newEnemies = prev[currentMap].enemies.map(enemy => {
+        const dx = playerPos.x - enemy.x;
+        const dy = playerPos.y - enemy.y;
+        const distance = Math.abs(dx) + Math.abs(dy);
+        
+        if (distance > 10) {
+          const dirs = ['up', 'down', 'left', 'right'];
+          const randomDir = dirs[Math.floor(Math.random() * dirs.length)];
+          let newX = enemy.x;
+          let newY = enemy.y;
+          
+          switch(randomDir) {
+            case 'up': newY--; break;
+            case 'down': newY++; break;
+            case 'left': newX--; break;
+            case 'right': newX++; break;
+            default: break;
+          }
+          
+          if (canMove(newX, newY) && !isEnemyAt(newX, newY) && 
+              !(newX === playerPos.x && newY === playerPos.y)) {
+            return { ...enemy, x: newX, y: newY, dir: randomDir };
+          }
+        } else if (distance > 1) {
+          let newX = enemy.x;
+          let newY = enemy.y;
+          let newDir = enemy.dir;
+          
+          if (Math.abs(dx) > Math.abs(dy)) {
+            newDir = dx > 0 ? 'right' : 'left';
+            newX = dx > 0 ? enemy.x + 1 : enemy.x - 1;
+          } else {
+            newDir = dy > 0 ? 'down' : 'up';
+            newY = dy > 0 ? enemy.y + 1 : enemy.y - 1;
+          }
+          
+          if (canMove(newX, newY) && !isEnemyAt(newX, newY) && 
+              !(newX === playerPos.x && newY === playerPos.y)) {
+            return { ...enemy, x: newX, y: newY, dir: newDir };
+          }
+        } else if (distance === 1) {
+          const baseDamage = enemy.type === 'slime' ? 10 : enemy.type === 'goblin' ? 15 : enemy.type === 'skeleton' ? 20 : 25;
+          const actualDamage = Math.max(1, baseDamage - getTotalDefense());
+          setPlayerStats(ps => ({ ...ps, hp: Math.max(0, ps.hp - actualDamage) }));
+        }
+        
+        return enemy;
+      });
+      
+      return {
+        ...prev,
+        [currentMap]: {
+          ...prev[currentMap],
+          enemies: newEnemies
+        }
+      };
+    });
+  };
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      moveEnemies();
+      spawnEnemy();
+    }, 500);
+    return () => clearInterval(interval);
+  }, [playerPos, currentMap, currentMapData]);
+
+  useEffect(() => {
+    if (playerStats.xp >= playerStats.maxXp) {
+      setPlayerStats(prev => ({
+        ...prev,
+        level: prev.level + 1,
+        xp: prev.xp - prev.maxXp,
+        maxXp: Math.floor(prev.maxXp * 1.5),
+        maxHp: prev.maxHp + 20,
+        hp: prev.maxHp + 20
+      }));
+      displayMessage('POZIOM WYŻEJ!');
+    }
+  }, [playerStats.xp]);
+
+  const initiateMove = (dir) => {
+    if (isMoving) return;
+
+    let newX = playerPos.x;
+    let newY = playerPos.y;
+
+    switch(dir) {
+      case 'up': newY = playerPos.y - 1; break;
+      case 'down': newY = playerPos.y + 1; break;
+      case 'left': newX = playerPos.x - 1; break;
+      case 'right': newX = playerPos.x + 1; break;
+      default: return;
+    }
+
+    const item = getItemAt(newX, newY);
+    if (item) {
+      pickupItem(newX, newY);
+    }
+
+    const portal = getPortalAt(newX, newY);
+    if (portal) {
+      usePortal(newX, newY);
+      return;
+    }
+
+    if (!canMove(newX, newY)) return;
+
+    setDirection(dir);
+    setTargetPos({ x: newX, y: newY });
+    setIsMoving(true);
+    setAnimationProgress(0);
+    lastMoveTimeRef.current = Date.now();
+  };
+
+  useEffect(() => {
+    if (!isMoving || !targetPos) return;
+
+    const animate = () => {
+      const elapsed = Date.now() - lastMoveTimeRef.current;
+      const progress = Math.min(elapsed / playerStats.speed, 1);
+      
+      setAnimationProgress(progress);
+
+      if (progress < 1) {
+        animationFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        setPlayerPos(targetPos);
+        setTargetPos(null);
+        setIsMoving(false);
+        setAnimationProgress(0);
+        
+        if (buttonPressedRef.current) {
+          setTimeout(() => initiateMove(buttonPressedRef.current), 10);
+        }
+      }
+    };
+
+    animationFrameRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [isMoving, targetPos, playerStats.speed]);
+
+  useEffect(() => {
+    const offsetX = Math.max(0, Math.min(playerPos.x - VISIBLE_TILES_X / 2, MAP_WIDTH - VISIBLE_TILES_X));
+    const offsetY = Math.max(0, Math.min(playerPos.y - VISIBLE_TILES_Y / 2, MAP_HEIGHT - VISIBLE_TILES_Y));
+    setCameraOffset({ x: offsetX, y: offsetY });
+  }, [playerPos, MAP_WIDTH, MAP_HEIGHT]);
+
+  const handleButtonPress = (dir) => {
+    buttonPressedRef.current = dir;
+    if (!isMoving) {
+      initiateMove(dir);
+    }
+  };
+
+  const handleButtonRelease = () => {
+    buttonPressedRef.current = null;
+  };
+
+  const getCurrentDisplayPosition = () => {
+    if (!isMoving || !targetPos) return playerPos;
+    const easeProgress = animationProgress < 0.5 
+      ? 2 * animationProgress * animationProgress 
+      : 1 - Math.pow(-2 * animationProgress + 2, 2) / 2;
+    return {
+      x: playerPos.x + (targetPos.x - playerPos.x) * easeProgress,
+      y: playerPos.y + (targetPos.y - playerPos.y) * easeProgress
+    };
+  };
+
+  const getTerrainColor = (x, y) => {
+    const obstacle = currentMapData.obstacles.find(obs => obs.x === x && obs.y === y);
+    if (obstacle?.type === 'water') return '#1e40af';
+    if (obstacle?.type === 'rock') return '#654321';
+    
+    const isEven = (y % 2 === 0) ? (x % 2 === 0) : (x % 2 !== 0);
+    return currentMap === 'map_cave1' 
+      ? (isEven ? '#374151' : '#4b5563')
+      : (isEven ? '#2d5016' : '#3a6b1f');
+  };
+
+  const getRarityColor = (rarity) => {
+    switch(rarity) {
+      case 'common': return '#9ca3af';
+      case 'uncommon': return '#22c55e';
+      case 'rare': return '#3b82f6';
+      case 'epic': return '#a855f7';
+      case 'legendary': return '#f59e0b';
+      default: return '#9ca3af';
+    }
+  };
+
+  const renderMap = () => {
+    const tiles = [];
+    const startX = Math.floor(cameraOffset.x);
+    const startY = Math.floor(cameraOffset.y);
+    const endX = Math.min(startX + VISIBLE_TILES_X + 1, MAP_WIDTH);
+    const endY = Math.min(startY + VISIBLE_TILES_Y + 1, MAP_HEIGHT);
+
+    for (let y = startY; y < endY; y++) {
+      for (let x = startX; x < endX; x++) {
+        const obstacle = currentMapData.obstacles.find(obs => obs.x === x && obs.y === y);
+        const item = currentMapData.items.find(it => it.x === x && it.y === y);
+        const portal = currentMapData.portals.find(p => p.x === x && p.y === y);
+        
+        tiles.push(
+          <div
+            key={`${x}-${y}`}
+            style={{
+              position: 'absolute',
+              left: `${(x - cameraOffset.x) * TILE_SIZE}px`,
+              top: `${(y - cameraOffset.y) * TILE_SIZE}px`,
+              width: `${TILE_SIZE}px`,
+              height: `${TILE_SIZE}px`,
+              background: getTerrainColor(x, y),
+              border: '1px solid rgba(0,0,0,0.1)',
+              boxSizing: 'border-box',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            {obstacle?.type === 'rock' && (
+              <div style={{
+                width: '80%',
+                height: '80%',
+                background: 'radial-gradient(circle, #8b7355 30%, #654321 70%)',
+                borderRadius: '30%',
+                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5)'
+              }} />
+            )}
+            {obstacle?.type === 'water' && (
+              <div style={{
+                width: '100%',
+                height: '100%',
+                background: 'radial-gradient(circle, #3b82f6 20%, #1e40af 80%)',
+                opacity: 0.8
+              }} />
+            )}
+            {item && (
+              <div style={{
+                fontSize: '24px',
+                animation: 'bounce 1s infinite',
+                textShadow: '0 2px 4px rgba(0,0,0,0.5)'
+              }}>
+                {item.icon}
+              </div>
+            )}
+            {portal && (
+              <div style={{
+                width: '90%',
+                height: '90%',
+                background: 'radial-gradient(circle, #8b5cf6 0%, #6d28d9 100%)',
+                borderRadius: '50%',
+                boxShadow: '0 0 20px #8b5cf6',
+                animation: 'pulse 2s infinite'
+              }} />
+            )}
+          </div>
+        );
+      }
+    }
+    return tiles;
+  };
+
+  const renderProjectiles = () => {
+    return projectiles.map(proj => {
+      const screenX = (proj.currentX - cameraOffset.x) * TILE_SIZE + TILE_SIZE / 2;
+      const screenY = (proj.currentY - cameraOffset.y) * TILE_SIZE + TILE_SIZE / 2;
+      
+      const icon = proj.weaponType === 'mage' ? '✨' : '🏹';
+      const color = proj.weaponType === 'mage' ? '#8b5cf6' : '#f59e0b';
+      
+      return (
+        <div
+          key={proj.id}
+          style={{
+            position: 'absolute',
+            left: `${screenX}px`,
+            top: `${screenY}px`,
+            transform: 'translate(-50%, -50%)',
+            fontSize: '20px',
+            zIndex: 950,
+            filter: `drop-shadow(0 0 4px ${color})`
+          }}
+        >
+          {icon}
+        </div>
+      );
+    });
+  };
+
+  const renderEnemies = () => {
+    const rotations = { up: 0, right: 90, down: 180, left: 270 };
+    
+    return currentMapData.enemies.map(enemy => {
+      const screenX = (enemy.x - cameraOffset.x) * TILE_SIZE + TILE_SIZE / 2;
+      const screenY = (enemy.y - cameraOffset.y) * TILE_SIZE + TILE_SIZE / 2;
+      
+      if (screenX < -50 || screenX > VISIBLE_TILES_X * TILE_SIZE + 50 ||
+          screenY < -50 || screenY > VISIBLE_TILES_Y * TILE_SIZE + 50) {
+        return null;
+      }
+
+      const enemyColors = {
+        slime: { main: '#22c55e', dark: '#16a34a', border: '#15803d' },
+        goblin: { main: '#ef4444', dark: '#dc2626', border: '#991b1b' },
+        skeleton: { main: '#d1d5db', dark: '#9ca3af', border: '#6b7280' },
+        orc: { main: '#84cc16', dark: '#65a30d', border: '#4d7c0f' }
+      };
+      
+      const colors = enemyColors[enemy.type] || enemyColors.slime;
+      
+      return (
+        <div key={enemy.id} style={{ position: 'absolute', left: `${screenX}px`, top: `${screenY}px`, transform: 'translate(-50%, -50%)', zIndex: 900 }}>
+          <div style={{
+            width: '32px',
+            height: '32px',
+            transform: `rotate(${rotations[enemy.dir]}deg)`,
+            position: 'relative'
+          }}>
+            <div style={{
+              width: '100%',
+              height: '100%',
+              background: `linear-gradient(135deg, ${colors.main} 0%, ${colors.dark} 100%)`,
+              borderRadius: '50% 50% 50% 0',
+              border: `2px solid ${colors.border}`,
+              boxShadow: '0 3px 6px rgba(0,0,0,0.4)'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: '6px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: '5px',
+                height: '5px',
+                background: '#dc2626',
+                borderRadius: '50%'
+              }} />
+            </div>
+          </div>
+          <div style={{
+            position: 'absolute',
+            top: '-12px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: '36px',
+            height: '6px',
+            background: '#1f2937',
+            borderRadius: '3px',
+            overflow: 'hidden',
+            border: '1px solid #000'
+          }}>
+            <div style={{
+              width: `${(enemy.hp / enemy.maxHp) * 100}%`,
+              height: '100%',
+              background: `linear-gradient(90deg, ${colors.main}, ${colors.dark})`,
+              transition: 'width 0.3s'
+            }} />
+          </div>
+        </div>
+      );
+    });
+  };
+
+  const renderPlayer = () => {
+    const rotations = { up: 0, right: 90, down: 180, left: 270 };
+    const displayPos = getCurrentDisplayPosition();
+    const screenX = (displayPos.x - cameraOffset.x) * TILE_SIZE + TILE_SIZE / 2;
+    const screenY = (displayPos.y - cameraOffset.y) * TILE_SIZE + TILE_SIZE / 2;
+
+    return (
+      <div style={{ position: 'absolute', left: `${screenX}px`, top: `${screenY}px`, transform: `translate(-50%, -50%) rotate(${rotations[direction]}deg)`, width: '32px', height: '32px', zIndex: 1000 }}>
+        <div style={{
+          width: '100%',
+          height: '100%',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          borderRadius: '50% 50% 50% 0',
+          border: '3px solid #fff',
+          boxShadow: '0 4px 8px rgba(0,0,0,0.5)',
+          position: 'relative'
+        }}>
+          <div style={{
+            position: 'absolute',
+            top: '6px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: '6px',
+            height: '6px',
+            background: '#fff',
+            borderRadius: '50%'
+          }} />
+        </div>
+      </div>
+    );
+  };
+
+  const ControlButton = ({ direction: dir, icon: Icon }) => (
+    <button
+      onMouseDown={() => handleButtonPress(dir)}
+      onMouseUp={handleButtonRelease}
+      onMouseLeave={handleButtonRelease}
+      onTouchStart={(e) => { e.preventDefault(); handleButtonPress(dir); }}
+      onTouchEnd={(e) => { e.preventDefault(); handleButtonRelease(); }}
+      style={{
+        width: '60px',
+        height: '60px',
+        background: buttonPressedRef.current === dir ? 'rgba(100, 100, 255, 0.8)' : 'rgba(0, 0, 0, 0.6)',
+        border: '2px solid rgba(255, 255, 255, 0.3)',
+        borderRadius: '12px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        touchAction: 'none',
+        transition: 'background 0.1s'
+      }}
+    >
+      <Icon size={32} color="#fff" />
+    </button>
+  );
+
+  return (
+    <div style={{
+      width: '100%',
+      height: '100vh',
+      background: 'linear-gradient(to bottom, #1a1a2e 0%, #16213e 100%)',
+      overflow: 'hidden',
+      position: 'relative',
+      touchAction: 'none',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}>
+      <style>{`
+        @keyframes bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-8px); }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 0.6; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.1); }
+        }
+      `}</style>
+
+      <div style={{
+        position: 'absolute',
+        top: '20px',
+        left: '20px',
+        background: 'rgba(0, 0, 0, 0.8)',
+        padding: '15px',
+        borderRadius: '12px',
+        border: '2px solid rgba(255, 255, 255, 0.2)',
+        color: '#fff',
+        minWidth: '220px',
+        zIndex: 2000
+      }}>
+        <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Sword size={20} /> Poziom {playerStats.level}
+        </div>
+        
+        <div style={{ marginBottom: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+            <Heart size={16} color="#ef4444" />
+            <span style={{ fontSize: '14px' }}>HP: {playerStats.hp}/{playerStats.maxHp}</span>
+          </div>
+          <div style={{
+            width: '100%',
+            height: '12px',
+            background: '#1f2937',
+            borderRadius: '6px',
+            overflow: 'hidden',
+            border: '1px solid #374151'
+          }}>
+            <div style={{
+              width: `${(playerStats.hp / playerStats.maxHp) * 100}%`,
+              height: '100%',
+              background: 'linear-gradient(90deg, #ef4444, #dc2626)',
+              transition: 'width 0.3s'
+            }} />
+          </div>
+        </div>
+
+        <div style={{ marginBottom: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+            <Zap size={16} color="#f59e0b" />
+            <span style={{ fontSize: '14px' }}>XP: {playerStats.xp}/{playerStats.maxXp}</span>
+          </div>
+          <div style={{
+            width: '100%',
+            height: '12px',
+            background: '#1f2937',
+            borderRadius: '6px',
+            overflow: 'hidden',
+            border: '1px solid #374151'
+          }}>
+            <div style={{
+              width: `${(playerStats.xp / playerStats.maxXp) * 100}%`,
+              height: '100%',
+              background: 'linear-gradient(90deg, #f59e0b, #d97706)',
+              transition: 'width 0.3s'
+            }} />
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', marginBottom: '8px' }}>
+          <Coins size={16} color="#fbbf24" />
+          <span>Złoto: {playerStats.gold}</span>
+        </div>
+
+        <div style={{ fontSize: '12px', color: '#9ca3af', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '8px' }}>
+          <div>⚔️ Atak: {playerStats.damage}</div>
+          <div>🛡️ Obrona: {getTotalDefense()}</div>
+          <div>📏 Zasięg: {playerStats.attackRange}</div>
+        </div>
+      </div>
+
+      <button
+        onClick={() => setShowInventory(!showInventory)}
+        style={{
+          position: 'absolute',
+          top: '20px',
+          right: '20px',
+          background: 'rgba(0, 0, 0, 0.8)',
+          border: '2px solid rgba(255, 255, 255, 0.3)',
+          borderRadius: '12px',
+          padding: '12px',
+          cursor: 'pointer',
+          color: '#fff',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          fontSize: '14px',
+          zIndex: 2000
+        }}
+      >
+        <Package size={20} />
+        Ekwipunek ({inventory.length})
+      </button>
+
+      {showInventory && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          background: 'rgba(0, 0, 0, 0.95)',
+          border: '3px solid rgba(255, 255, 255, 0.3)',
+          borderRadius: '16px',
+          padding: '24px',
+          minWidth: '320px',
+          maxWidth: '400px',
+          maxHeight: '80vh',
+          overflow: 'auto',
+          zIndex: 3000
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '20px',
+            color: '#fff'
+          }}>
+            <h2 style={{ margin: 0, fontSize: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <ShoppingBag size={24} />
+              Ekwipunek
+            </h2>
+            <button
+              onClick={() => setShowInventory(false)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#fff',
+                cursor: 'pointer',
+                padding: '4px'
+              }}
+            >
+              <X size={24} />
+            </button>
+          </div>
+
+          <div style={{ marginBottom: '20px', paddingBottom: '16px', borderBottom: '2px solid rgba(255,255,255,0.2)' }}>
+            <h3 style={{ color: '#fff', fontSize: '16px', marginBottom: '12px' }}>Założony Ekwipunek</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', fontSize: '12px' }}>
+              <div style={{ background: 'rgba(255,255,255,0.1)', padding: '8px', borderRadius: '8px', textAlign: 'center', color: '#fff' }}>
+                <div style={{ marginBottom: '4px' }}>Broń</div>
+                <div style={{ fontSize: '20px' }}>{equipment.weapon ? equipment.weapon.icon : '❌'}</div>
+              </div>
+              <div style={{ background: 'rgba(255,255,255,0.1)', padding: '8px', borderRadius: '8px', textAlign: 'center', color: '#fff' }}>
+                <div style={{ marginBottom: '4px' }}>Hełm</div>
+                <div style={{ fontSize: '20px' }}>{equipment.helmet ? equipment.helmet.icon : '❌'}</div>
+              </div>
+              <div style={{ background: 'rgba(255,255,255,0.1)', padding: '8px', borderRadius: '8px', textAlign: 'center', color: '#fff' }}>
+                <div style={{ marginBottom: '4px' }}>Zbroja</div>
+                <div style={{ fontSize: '20px' }}>{equipment.armor ? equipment.armor.icon : '❌'}</div>
+              </div>
+              <div style={{ background: 'rgba(255,255,255,0.1)', padding: '8px', borderRadius: '8px', textAlign: 'center', color: '#fff' }}>
+                <div style={{ marginBottom: '4px' }}>Spodnie</div>
+                <div style={{ fontSize: '20px' }}>{equipment.pants ? equipment.pants.icon : '❌'}</div>
+              </div>
+              <div style={{ background: 'rgba(255,255,255,0.1)', padding: '8px', borderRadius: '8px', textAlign: 'center', color: '#fff' }}>
+                <div style={{ marginBottom: '4px' }}>Buty</div>
+                <div style={{ fontSize: '20px' }}>{equipment.boots ? equipment.boots.icon : '❌'}</div>
+              </div>
+              <div style={{ background: 'rgba(255,255,255,0.1)', padding: '8px', borderRadius: '8px', textAlign: 'center', color: '#fff' }}>
+                <div style={{ marginBottom: '4px' }}>Tarcza</div>
+                <div style={{ fontSize: '20px' }}>{equipment.shield ? equipment.shield.icon : '❌'}</div>
+              </div>
+            </div>
+          </div>
+
+          {inventory.length === 0 ? (
+            <div style={{ color: '#9ca3af', textAlign: 'center', padding: '20px' }}>
+              Ekwipunek jest pusty
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {inventory.map(item => (
+                <div
+                  key={item.id}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: `2px solid ${item.rarity ? getRarityColor(item.rarity) : 'rgba(255, 255, 255, 0.2)'}`,
+                    borderRadius: '12px',
+                    padding: '12px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    color: '#fff'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                    <span style={{ fontSize: '32px' }}>{item.icon}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 'bold', color: item.rarity ? getRarityColor(item.rarity) : '#fff' }}>{item.name}</div>
+                      <div style={{ fontSize: '11px', color: '#9ca3af' }}>
+                        {item.type === 'potion' && `Leczy: ${item.healing} HP`}
+                        {item.type === 'weapon' && `⚔️ ${item.damage} | 📏 ${item.range}`}
+                        {item.type === 'armor' && `🛡️ Obrona: ${item.defense}`}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => useItem(item.id)}
+                    style={{
+                      background: item.type === 'potion' ? 'linear-gradient(135deg, #22c55e, #16a34a)' : 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '8px 16px',
+                      color: '#fff',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      fontSize: '14px'
+                    }}
+                  >
+                    {item.type === 'potion' ? 'Użyj' : 'Załóż'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {showMessage && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          background: 'rgba(0, 0, 0, 0.9)',
+          border: '3px solid #fbbf24',
+          borderRadius: '16px',
+          padding: '20px 40px',
+          color: '#fff',
+          fontSize: '20px',
+          fontWeight: 'bold',
+          zIndex: 4000,
+          textAlign: 'center',
+          boxShadow: '0 10px 40px rgba(0,0,0,0.8)'
+        }}>
+          {showMessage}
+        </div>
+      )}
+
+      <div style={{
+        width: `${VISIBLE_TILES_X * TILE_SIZE}px`,
+        height: `${VISIBLE_TILES_Y * TILE_SIZE}px`,
+        position: 'relative',
+        overflow: 'hidden',
+        border: '4px solid #8b7355',
+        borderRadius: '12px',
+        boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+        background: '#000'
+      }}>
+        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+          {renderMap()}
+          {renderEnemies()}
+          {renderProjectiles()}
+          {renderPlayer()}
+        </div>
+        
+        <div style={{
+          position: 'absolute',
+          bottom: '10px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(0, 0, 0, 0.7)',
+          padding: '8px 16px',
+          borderRadius: '8px',
+          color: '#fff',
+          fontSize: '12px',
+          border: '1px solid rgba(255, 255, 255, 0.2)'
+        }}>
+          📍 {currentMap === 'map_base1' ? 'Łąka Startowa' : 'Ciemna Jaskinia'} | Przeciwnicy: {currentMapData.enemies.length}/{currentMapData.maxEnemies}
+        </div>
+      </div>
+
+      <div style={{
+        position: 'fixed',
+        bottom: '40px',
+        left: '40px',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 60px)',
+        gridTemplateRows: 'repeat(3, 60px)',
+        gap: '8px',
+        zIndex: 2000
+      }}>
+        <div style={{ gridColumn: '2', gridRow: '1' }}>
+          <ControlButton direction="up" icon={ChevronUp} />
+        </div>
+        <div style={{ gridColumn: '1', gridRow: '2' }}>
+          <ControlButton direction="left" icon={ChevronLeft} />
+        </div>
+        <div style={{ gridColumn: '3', gridRow: '2' }}>
+          <ControlButton direction="right" icon={ChevronRight} />
+        </div>
+        <div style={{ gridColumn: '2', gridRow: '3' }}>
+          <ControlButton direction="down" icon={ChevronDown} />
+        </div>
+      </div>
+
+      <button
+        onClick={performAttack}
+        onTouchStart={(e) => { e.preventDefault(); performAttack(); }}
+        style={{
+          position: 'fixed',
+          bottom: '40px',
+          right: '40px',
+          width: '80px',
+          height: '80px',
+          background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+          border: '3px solid rgba(255, 255, 255, 0.4)',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          boxShadow: '0 4px 12px rgba(239, 68, 68, 0.5)',
+          zIndex: 2000,
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+          touchAction: 'none'
+        }}
+      >
+        <Target size={40} color="#fff" />
+      </button>
+
+      <div style={{
+        position: 'fixed',
+        bottom: '140px',
+        right: '20px',
+        background: 'rgba(0, 0, 0, 0.7)',
+        padding: '10px 16px',
+        borderRadius: '12px',
+        border: '2px solid rgba(255, 255, 255, 0.2)',
+        color: '#fff',
+        fontSize: '12px',
+        zIndex: 2000
+      }}>
+        <div>Pozycja: ({playerPos.x}, {playerPos.y})</div>
+        <div>Przedmioty: {currentMapData.items.length}</div>
+        <div>Typ: {getWeaponType() === 'melee' ? 'Wojownik' : getWeaponType() === 'archer' ? 'Łucznik' : 'Mag'}</div>
+      </div>
+
+      {playerStats.hp <= 0 && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          background: 'rgba(0, 0, 0, 0.9)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 5000
+        }}>
+          <div style={{
+            background: 'rgba(139, 0, 0, 0.8)',
+            border: '4px solid #dc2626',
+            borderRadius: '20px',
+            padding: '40px',
+            textAlign: 'center',
+            color: '#fff'
+          }}>
+            <div style={{ fontSize: '48px', marginBottom: '20px' }}>💀</div>
+            <h2 style={{ fontSize: '32px', marginBottom: '16px', color: '#ef4444' }}>Zginąłeś!</h2>
+            <p style={{ fontSize: '18px', marginBottom: '24px' }}>Poziom: {playerStats.level} | Zdobyte złoto: {playerStats.gold}</p>
+            <button
+              onClick={() => {
+                setPlayerStats({
+                  hp: 100,
+                  maxHp: 100,
+                  level: 1,
+                  xp: 0,
+                  maxXp: 100,
+                  speed: 500,
+                  gold: 50,
+                  attackRange: 1,
+                  damage: 25
+                });
+                setPlayerPos({ x: 100, y: 50 });
+                setCurrentMap('map_base1');
+                setInventory([{ id: 'potion1', name: 'Mikstura zdrowia', type: 'potion', healing: 50, icon: '🧪' }]);
+                setEquipment({
+                  weapon: null,
+                  helmet: null,
+                  armor: null,
+                  pants: null,
+                  boots: null,
+                  shield: null
+                });
+              }}
+              style={{
+                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '16px 32px',
+                color: '#fff',
+                fontSize: '18px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
+              }}
+            >
+              Zacznij od nowa
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default MobileRPG;
